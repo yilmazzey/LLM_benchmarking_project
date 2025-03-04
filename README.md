@@ -59,6 +59,8 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 #### Fine-tuning
 
+- [ ] Fine tuning data creation
+
 - [ ] gpt-4o-mini
 - [ ] gemini-2.0-flash
 
