@@ -9,7 +9,7 @@ import fitz  # PyMuPDF
 import argparse
 from tqdm import tqdm
 from dotenv import load_dotenv
-from google.generativeai.types import GenerationConfig, SafetySetting, HarmCategory, HarmBlockThreshold
+from google.generativeai.types import GenerationConfig
 
 def convert_pdf_to_images(pdf_path, max_pages=None):
     """Convert PDF to a list of images using PyMuPDF."""
