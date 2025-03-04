@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from google.generativeai.types import GenerationConfig
 import json
 
+
 def convert_pdf_to_images(pdf_path, max_pages=None):
     """Convert PDF to a list of images using PyMuPDF."""
     print("Converting PDF to images...")
@@ -252,4 +253,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Process all PDFs in the folder
+
     process_all_pdfs_in_folder(args.folder, args.max_pages, not args.no_resume) 
