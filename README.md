@@ -37,6 +37,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] llama3.3 70B
 - [ ] deepseek r1 70b
 - [ ] qwen 2.5 32B
+- [ ] mistral-large
 
 #### Closed Source
 - [ ] gpt-4o-mini
