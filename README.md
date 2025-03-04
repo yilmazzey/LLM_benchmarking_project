@@ -14,9 +14,10 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 - [ ] For the choosen models;
 
-- Open Source
+#### Open Source
 
-- Low Parameter;
+#### Low Parameter;
+
 - [ ] smollm2 1.7B
 - [ ] qwen 2.5 1.5B
 - [ ] qwen 2.5 3B
@@ -25,25 +26,25 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] FlanT5
 - [ ] Phi4-mini 3.8B
 
-- Medium Parameter;
+#### Medium Parameter;
 - [ ] qwen 2.5 7B
 - [ ] Llama 3.1 8B
 - [ ] qwen 2.5 14B
 - [ ] r1 8b
 
-- High Parameter;
+#### High Parameter;
 
 - [ ] llama3.3 70B
 - [ ] deepseek r1 70b
 - [ ] qwen 2.5 32B
 
-- Closed Source
+#### Closed Source
 - [ ] gpt-4o-mini
 - [ ] gpt-4o
 - [ ] gemini-2.0-flash
 - [ ] deepseek-r1
 
-### Evaluations
+#### Evaluations
 
 - [ ] all-MiniLM-L12-v2
 - [ ] paraphrase-multilingual-MiniLM-L12-v2
@@ -55,7 +56,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] UniEval
 - [ ] G-eval
 
-### Fine-tuning
+#### Fine-tuning
 
 - [ ] gpt-4o-mini
 - [ ] gemini-2.0-flash
