@@ -16,7 +16,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 #### Open Source
 
-#### Low Parameter;
+#### Low Parameter; ollama & colab
 
 - [ ] smollm2 1.7B
 - [ ] qwen 2.5 1.5B
@@ -26,7 +26,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] FlanT5
 - [ ] Phi4-mini 3.8B
 
-#### Medium Parameter;
+#### Medium Parameter; ollama
 - [ ] qwen 2.5 7B
 - [ ] Llama 3.1 8B
 - [ ] qwen 2.5 14B
