@@ -8,6 +8,8 @@ from google.api_core import exceptions
 import fitz  # PyMuPDF
 import argparse
 from tqdm import tqdm
+from dotenv import load_dotenv
+from google.generativeai.types import GenerationConfig, SafetySetting, HarmCategory, HarmBlockThreshold
 
 def convert_pdf_to_images(pdf_path, max_pages=None):
     """Convert PDF to a list of images using PyMuPDF."""
@@ -56,11 +58,61 @@ def convert_pdf_to_images(pdf_path, max_pages=None):
     return image_paths
 
 # Configure Gemini API
-def setup_gemini():
-    print("Initializing Gemini model...")
-    genai.configure(api_key="AIzaSyAFv18kSLlVV4-ClGYCrgaiLtXESJDq5fM")
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    return model
+def setup_gemini(temperature=1.0): #0.2, 0.4, 0.6 0.8
+    """Initialize the Gemini model with API key from environment variables and custom parameters
+    
+    Args:
+        temperature (float): Controls randomness (0.0-1.0). Lower is more deterministic.
+        
+    Returns:
+        GenerativeModel: Initialized Gemini model
+    """
+    try:
+        # Load environment variables from .env file if present
+        load_dotenv()
+        
+        # Get API key from environment variable
+        api_key = os.environ.get("GEMINI_API_KEY")
+        
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable not set")
+        
+        print("Initializing Gemini model...")
+        genai.configure(api_key=api_key)
+        
+        # Configure generation parameters
+        generation_config = GenerationConfig(
+            temperature=temperature,
+        )
+        
+        # System instruction with XML formatting requirements
+        system_instruction = """
+        You are a professional text extractor. Extract text from images accurately and format the output by sections using the tag format <sectionname></sectionname>. Make the whole article in the <article> tag and make it nested.
+        Context: We are using you to convert articles page by page, but your memory is limited to one page. So remember that when you are extracting text it might be a random page of an article page that we want you to extract text from.
+		Rules:
+        Always structure your response in the following tags:
+        - If the page has an abstract use the abstract tag -> <abstract></abstract>
+        - For the section naming look for the naming of the section in the article page. Name that tag accordingly.
+        - Example:
+            <title>The title of the article</title>
+            <abstract>The abstract or summary of the article</abstract>
+            <content>
+               Article content will be structured based on the article's structure.
+            </content>
+        """
+        
+        # Initialize the model with all configurations
+        model = genai.GenerativeModel(
+            model_name='gemini-2.0-flash',
+            generation_config=generation_config,
+            system_instruction=system_instruction
+        )
+        
+        return model
+    
+    except Exception as e:
+        print(f"Error initializing Gemini model: {str(e)}")
+        raise
 
 # Retry decorator for rate limit handling
 @retry(
