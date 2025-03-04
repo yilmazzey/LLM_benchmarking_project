@@ -10,6 +10,8 @@ import argparse
 from tqdm import tqdm
 from dotenv import load_dotenv
 from google.generativeai.types import GenerationConfig
+import json
+
 
 def convert_pdf_to_images(pdf_path, max_pages=None):
     """Convert PDF to a list of images using PyMuPDF."""
@@ -128,7 +130,7 @@ def process_image_with_gemini(model, image_path):
     ])
     return response.text
 
-def process_pdf(pdf_path, max_pages=None):
+def process_pdf(pdf_path, max_pages=None, resume=True):
     # Create output folder if it doesn't exist
     os.makedirs('output', exist_ok=True)
     
@@ -136,6 +138,17 @@ def process_pdf(pdf_path, max_pages=None):
     pdf_name = os.path.splitext(os.path.basename(pdf_path))[0]
     suffix = f"_first_{max_pages}_pages" if max_pages else ""
     output_file = os.path.join('output', f'{pdf_name}{suffix}_extracted.txt')
+    
+    # Checkpoint file path
+    checkpoint_file = os.path.join('output', f'{pdf_name}{suffix}_checkpoint.json')
+    
+    # Check for existing checkpoint
+    processed_pages = []
+    if resume and os.path.exists(checkpoint_file):
+        with open(checkpoint_file, 'r') as cf:
+            checkpoint_data = json.load(cf)
+            processed_pages = checkpoint_data.get('processed_pages', [])
+        print(f"Resuming from checkpoint. {len(processed_pages)} pages already processed.")
     
     # Convert PDF to images
     image_paths = convert_pdf_to_images(pdf_path, max_pages)
@@ -145,13 +158,32 @@ def process_pdf(pdf_path, max_pages=None):
     
     print(f"\nProcessing {len(image_paths)} pages...")
     
+    # Create output file if it doesn't exist
+    if not os.path.exists(output_file):
+        open(output_file, 'w').close()
+    
     # Process each image
-    with open(output_file, 'w', encoding='utf-8') as f:
-        for img_path in tqdm(image_paths, desc="Extracting text"):
+    with open(output_file, 'a', encoding='utf-8') as f:
+        for i, img_path in enumerate(tqdm(image_paths, desc="Extracting text")):
+            page_num = i + 1
+            
+            # Skip already processed pages
+            if page_num in processed_pages:
+                continue
+                
             try:
                 # Process image with Gemini
                 extracted_text = process_image_with_gemini(model, img_path)
                 f.write(extracted_text + '\n\n')  # Add double newline between pages
+                
+                # Update checkpoint
+                processed_pages.append(page_num)
+                with open(checkpoint_file, 'w') as cf:
+                    json.dump({
+                        'pdf_path': pdf_path,
+                        'processed_pages': processed_pages
+                    }, cf)
+                    
             except Exception as e:
                 print(f"\nError processing {img_path}: {str(e)}")
                 f.write(f"[ERROR: Failed to process this page - {str(e)}]\n\n")
@@ -167,11 +199,19 @@ def process_pdf(pdf_path, max_pages=None):
     except:
         pass
     
+    # Remove checkpoint file if processing completed successfully
+    if len(processed_pages) == len(image_paths):
+        try:
+            os.remove(checkpoint_file)
+            print("Processing completed. Checkpoint file removed.")
+        except:
+            pass
+    
     print(f"\nText extraction completed!")
     print(f"Text file saved as: {output_file}")
     return output_file
 
-def process_all_pdfs_in_folder(folder_path="article", max_pages=None):
+def process_all_pdfs_in_folder(folder_path="article", max_pages=None, resume=True):
     """Process all PDFs in the specified folder"""
     # Ensure folder exists
     if not os.path.exists(folder_path):
@@ -196,7 +236,7 @@ def process_all_pdfs_in_folder(folder_path="article", max_pages=None):
         print(f"{'='*60}")
         
         try:
-            process_pdf(pdf_path, max_pages)
+            process_pdf(pdf_path, max_pages, resume)
         except Exception as e:
             print(f"Error processing {pdf_path}: {str(e)}")
     
@@ -205,11 +245,13 @@ def process_all_pdfs_in_folder(folder_path="article", max_pages=None):
 if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(description='Extract text from PDFs using Google Gemini')
-    parser.add_argument('--folder', default="articles_100_pdf", help='Folder containing PDF files (default: "articles")')
+    parser.add_argument('--folder', default="ocr_sectioning/folder_4", help='Folder containing PDF files (default: "articles")')
     parser.add_argument('--max_pages', type=int, help='Maximum number of pages to process per PDF', default=None)
+    parser.add_argument('--no-resume', action='store_true', help='Start processing from the beginning without using checkpoints')
     
     # Parse arguments
     args = parser.parse_args()
     
     # Process all PDFs in the folder
-    process_all_pdfs_in_folder(args.folder, args.max_pages) 
+
+    process_all_pdfs_in_folder(args.folder, args.max_pages, not args.no_resume) 
