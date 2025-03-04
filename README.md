@@ -4,8 +4,48 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 ## Todo
 
+### Data
+
 - [ ] Raw Data Creation -> 2000 Articles with Gemini 2.0 Flash OCR, Marker Library
-- [ ] 
+- [ ] Raw Data Check -> 100 Manuel Human Bench, 1000 Randomized 3 serial words check 100 of them between the articles, 
+- [ ] Raw Data To Sectioned Data -> Later we will do sectioning with Gemini-2.0-Flash or Regex
+
+### Abstract Generation
+
+- [ ] For the choosen models;
+
+- Open Source
+
+- Low Parameter;
+- [ ] smollm2 1.7B
+- [ ] qwen 2.5 1.5B
+- [ ] llama3.2 3B
+- [ ] Gemma 2:2B
+- [ ] FlanT5
+- [ ] Phi4-mini 3.8B
+
+- Medium Parameter;
+- [ ] qwen 2.5 7B
+- [ ] Llama 3.1 8B
+- [ ] qwen 2.5 14B
+
+- High Parameter;
+
+- [ ] llama3.3 70B
+- [ ] deepseek r1 70b
+- [ ] qwen 2.5 32B
+
+- Closed Source
+- [ ] gpt-4o-mini
+- [ ] gpt-4o
+- [ ] gemini-2.0-flash
+- [ ] deepseek-r1
+
+
+
+
+
+
 ## Project Stages
 
 The project is structured into the following stages:
