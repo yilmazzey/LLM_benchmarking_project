@@ -58,7 +58,7 @@ def convert_pdf_to_images(pdf_path, max_pages=None):
     return image_paths
 
 # Configure Gemini API
-def setup_gemini(temperature=1.0): #0.2, 0.4, 0.6 0.8
+def setup_gemini(temperature=0.2): #0.2, 0.4, 0.6 0.8
     """Initialize the Gemini model with API key from environment variables and custom parameters
     
     Args:
