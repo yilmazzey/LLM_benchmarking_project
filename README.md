@@ -19,6 +19,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - Low Parameter;
 - [ ] smollm2 1.7B
 - [ ] qwen 2.5 1.5B
+- [ ] qwen 2.5 3B
 - [ ] llama3.2 3B
 - [ ] Gemma 2:2B
 - [ ] FlanT5
@@ -28,6 +29,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] qwen 2.5 7B
 - [ ] Llama 3.1 8B
 - [ ] qwen 2.5 14B
+- [ ] r1 8b
 
 - High Parameter;
 
@@ -41,10 +43,30 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] gemini-2.0-flash
 - [ ] deepseek-r1
 
+### Evaluations
 
+- [ ] all-MiniLM-L12-v2
+- [ ] paraphrase-multilingual-MiniLM-L12-v2
+- [ ] all-mpnet-base-v2
+- [ ] Bge-large
+- [ ] nomic-embed-text
+- [ ] BERTscore F1
+- [ ] ROUGE 1-2-L score
+- [ ] UniEval
+- [ ] G-eval
 
+### Fine-tuning
 
+- [ ] gpt-4o-mini
+- [ ] gemini-2.0-flash
 
+- [ ] llama3.2 3B
+- [ ] smollm2 1.7B
+
+- [ ] Llama 3.1 8B
+- [ ] qwen 2.5 7B
+
+- [ ] llama3.3 70B
 
 ## Project Stages
 
