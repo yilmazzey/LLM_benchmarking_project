@@ -2,6 +2,10 @@
 
 This repository contains the code for the LLM Benchmarking Project (sdp_llm), organized into folders representing different stages of the project.
 
+## Todo
+
+- [ ] Raw Data Creation -> 2000 Articles with Gemini 2.0 Flash OCR, Marker Library
+- [ ] 
 ## Project Stages
 
 The project is structured into the following stages:
