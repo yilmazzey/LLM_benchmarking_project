@@ -7,7 +7,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 ### Data
 
 - [x] Raw Data Creation -> 1487 Articles with Gemini 2.0 Flash OCR, Marker Library
-- [x] Raw Data Check -> 100 Manuel Human Bench, 1000 Randomized 3 serial words check 100 of them between the articles, 
+- [ ] Raw Data Check -> 100 Manuel Human Bench, 1000 Randomized 3 serial words check 100 of them between the articles, 
 - [x] Raw Data To Sectioned Data -> Later we will do sectioning with Gemini-2.0-Flash or Regex
 
 ### Abstract Generation
