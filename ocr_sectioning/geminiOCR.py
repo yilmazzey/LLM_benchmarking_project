@@ -225,27 +225,59 @@ def process_all_pdfs_in_folder(folder_path="article", max_pages=None, resume=Tru
         print(f"No PDF files found in '{folder_path}' folder!")
         return
     
-    print(f"Found {len(pdf_files)} PDF files to process:")
-    for i, pdf in enumerate(pdf_files):
+    # Create folder checkpoint file path
+    folder_name = os.path.basename(os.path.normpath(folder_path))
+    folder_checkpoint = os.path.join('output', f'{folder_name}_folder_checkpoint.json')
+    
+    # Check for existing folder checkpoint
+    completed_pdfs = []
+    if resume and os.path.exists(folder_checkpoint):
+        with open(folder_checkpoint, 'r') as f:
+            checkpoint_data = json.load(f)
+            completed_pdfs = checkpoint_data.get('completed_pdfs', [])
+        print(f"Resuming from folder checkpoint. {len(completed_pdfs)} PDFs already processed.")
+    
+    # Filter out completed PDFs
+    pending_pdfs = [pdf for pdf in pdf_files if pdf not in completed_pdfs]
+    
+    print(f"Found {len(pdf_files)} PDF files, {len(pending_pdfs)} left to process:")
+    for i, pdf in enumerate(pending_pdfs):
         print(f"  {i+1}. {os.path.basename(pdf)}")
     
     # Process each PDF file
-    for pdf_path in pdf_files:
+    for pdf_path in pending_pdfs:
         print(f"\n{'='*60}")
         print(f"Processing: {os.path.basename(pdf_path)}")
         print(f"{'='*60}")
         
         try:
             process_pdf(pdf_path, max_pages, resume)
+            
+            # Update folder checkpoint
+            completed_pdfs.append(pdf_path)
+            with open(folder_checkpoint, 'w') as f:
+                json.dump({
+                    'folder_path': folder_path,
+                    'completed_pdfs': completed_pdfs
+                }, f)
+                
         except Exception as e:
             print(f"Error processing {pdf_path}: {str(e)}")
+    
+    # Remove folder checkpoint file once all PDFs are processed
+    if len(completed_pdfs) == len(pdf_files):
+        try:
+            os.remove(folder_checkpoint)
+            print("All PDFs processed. Folder checkpoint removed.")
+        except:
+            pass
     
     print("\nAll PDF files have been processed!")
 
 if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(description='Extract text from PDFs using Google Gemini')
-    parser.add_argument('--folder', default="ocr_sectioning/folder_4", help='Folder containing PDF files (default: "articles")')
+    parser.add_argument('--folder', default="/Users/zeynep_yilmaz/Desktop/sdpgithub/LLM_benchmarking_project/ocr_sectioning/folder_4", help='Folder containing PDF files (default: "articles")')
     parser.add_argument('--max_pages', type=int, help='Maximum number of pages to process per PDF', default=None)
     parser.add_argument('--no-resume', action='store_true', help='Start processing from the beginning without using checkpoints')
     
