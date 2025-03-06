@@ -21,7 +21,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [x] smollm2 1.7B*
 - [x] qwen 2.5 1.5B*
 - [ ] qwen 2.5 3B
-- [x] llama3.2 3B*
+- [x] llama3.2 3B* -> zeynep
 - [ ] Gemma 2:2B
 - [ ] FlanT5
 - [ ] Phi4-mini 3.8B
@@ -30,7 +30,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] qwen 2.5 7B
 - [ ] Llama 3.1 8B*
 - [ ] qwen 2.5 14B
-- [ ] r1 8b*
+- [ ] r1 8b* -> zeynep
 
 #### High Parameter;
 
