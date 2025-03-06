@@ -6,9 +6,9 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 ### Data
 
-- [ ] Raw Data Creation -> 2000 Articles with Gemini 2.0 Flash OCR, Marker Library
+- [x] Raw Data Creation -> 1487 Articles with Gemini 2.0 Flash OCR, Marker Library
 - [ ] Raw Data Check -> 100 Manuel Human Bench, 1000 Randomized 3 serial words check 100 of them between the articles, 
-- [ ] Raw Data To Sectioned Data -> Later we will do sectioning with Gemini-2.0-Flash or Regex
+- [x] Raw Data To Sectioned Data -> Later we will do sectioning with Gemini-2.0-Flash or Regex
 
 ### Abstract Generation
 
@@ -16,32 +16,33 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 #### Open Source
 
-#### Low Parameter;
+#### Low Parameter; ollama & colab -> They Are on the generate file.
 
-- [ ] smollm2 1.7B
-- [ ] qwen 2.5 1.5B
+- [x] smollm2 1.7B*
+- [x] qwen 2.5 1.5B*
 - [ ] qwen 2.5 3B
-- [ ] llama3.2 3B
+- [x] llama3.2 3B* -> zeynep
 - [ ] Gemma 2:2B
 - [ ] FlanT5
 - [ ] Phi4-mini 3.8B
 
-#### Medium Parameter;
+#### Medium Parameter; ollama They Are on the generate file.
 - [ ] qwen 2.5 7B
-- [ ] Llama 3.1 8B
+- [ ] Llama 3.1 8B*
 - [ ] qwen 2.5 14B
-- [ ] r1 8b
+- [ ] r1 8b* -> zeynep
 
 #### High Parameter;
 
 - [ ] llama3.3 70B
 - [ ] deepseek r1 70b
-- [ ] qwen 2.5 32B
+- [ ] qwen 2.5 32B [ It is on the generate file ]
+- [ ] mistral-large*
 
 #### Closed Source
 - [ ] gpt-4o-mini
 - [ ] gpt-4o
-- [ ] gemini-2.0-flash
+- [ ] gemini-2.0-flash*
 - [ ] deepseek-r1
 
 #### Evaluations
@@ -57,6 +58,8 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] G-eval
 
 #### Fine-tuning
+
+- [ ] Fine tuning data creation
 
 - [ ] gpt-4o-mini
 - [ ] gemini-2.0-flash
