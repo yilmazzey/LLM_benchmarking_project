@@ -18,31 +18,31 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 #### Low Parameter; ollama & colab -> They Are on the generate file.
 
-- [x] smollm2 1.7B
-- [x] qwen 2.5 1.5B
+- [x] smollm2 1.7B*
+- [x] qwen 2.5 1.5B*
 - [ ] qwen 2.5 3B
-- [x] llama3.2 3B
+- [x] llama3.2 3B*
 - [ ] Gemma 2:2B
 - [ ] FlanT5
 - [ ] Phi4-mini 3.8B
 
 #### Medium Parameter; ollama They Are on the generate file.
 - [ ] qwen 2.5 7B
-- [ ] Llama 3.1 8B
+- [ ] Llama 3.1 8B*
 - [ ] qwen 2.5 14B
-- [ ] r1 8b
+- [ ] r1 8b*
 
 #### High Parameter;
 
 - [ ] llama3.3 70B
 - [ ] deepseek r1 70b
 - [ ] qwen 2.5 32B [ It is on the generate file ]
-- [ ] mistral-large
+- [ ] mistral-large*
 
 #### Closed Source
 - [ ] gpt-4o-mini
 - [ ] gpt-4o
-- [ ] gemini-2.0-flash
+- [ ] gemini-2.0-flash*
 - [ ] deepseek-r1
 
 #### Evaluations
