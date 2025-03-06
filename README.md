@@ -19,7 +19,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 #### Low Parameter; ollama & colab -> They Are on the generate file.
 
 - [x] smollm2 1.7B
-- [ ] qwen 2.5 1.5B
+- [x] qwen 2.5 1.5B
 - [ ] qwen 2.5 3B
 - [x] llama3.2 3B
 - [ ] Gemma 2:2B
