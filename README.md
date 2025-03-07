@@ -28,9 +28,9 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 
 #### Medium Parameter; ollama They Are on the generate file.
 - [ ] qwen 2.5 7B
-- [ ] Llama 3.1 8B*
+- [x] Llama 3.1 8B*
 - [ ] qwen 2.5 14B
-- [ ] r1 8b* -> zeynep
+- [x] r1 8b* -> zeynep
 
 #### High Parameter;
 
