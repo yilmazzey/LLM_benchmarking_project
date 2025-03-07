@@ -22,7 +22,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [x] qwen 2.5 1.5B*
 - [ ] qwen 2.5 3B
 - [x] llama3.2 3B* -> zeynep
-- [ ] Gemma 2:2B
+- [x] Gemma 2:2B
 - [ ] FlanT5
 - [ ] Phi4-mini 3.8B
 
@@ -37,7 +37,7 @@ This repository contains the code for the LLM Benchmarking Project (sdp_llm), or
 - [ ] llama3.3 70B
 - [ ] deepseek r1 70b
 - [ ] qwen 2.5 32B [ It is on the generate file ]
-- [ ] mistral-large*
+- [x] mistral-large*
 
 #### Closed Source
 - [ ] gpt-4o-mini
