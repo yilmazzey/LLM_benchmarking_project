@@ -24,20 +24,19 @@ from transformers import TrainingArguments, DataCollatorForSeq2Seq, TextStreamer
 
 # Parse command line arguments
 def parse_args():
-    parser = argparse.ArgumentParser(description="Fine-tune Llama 3.2 models on local conversational data")
+    parser = argparse.ArgumentParser(description="Fine-tune Llama 3.2 1B or 3B model on local conversational data")
     parser.add_argument("--dataset", type=str, required=True, 
                         help="Path to local JSON file in ShareGPT format")
-    parser.add_argument("--model", type=str, default="unsloth/Llama-3.2-3B-Instruct",
-                        help="Model to fine-tune (default: unsloth/Llama-3.2-3B-Instruct)")
     parser.add_argument("--output", type=str, default="outputs",
                         help="Output directory for saving model (default: outputs)")
-    parser.add_argument("--steps", type=int, default=60,
-                        help="Number of training steps (default: 60)")
-    parser.add_argument("--epochs", type=int, default=None,
+    parser.add_argument("--steps", type=int, default=300,
+                        help="Number of training steps (default: 300)")
+    parser.add_argument("--epochs", type=int, default=10,
                         help="Number of training epochs (overrides steps if specified)")
-    parser.add_argument("--batch-size", type=int, default=2,
-                        help="Per-device training batch size (default: 2)")
+    parser.add_argument("--batch-size", type=int, default=12,
+                        help="Per-device training batch size (default: 12) You can try 10-8-6")
     return parser.parse_args()
+# Overfitting'i önlemek için validation loss'u takip etmeniz ve early stopping kullanmanız faydalı olacaktır.
 
 def main():
     # Parse arguments
@@ -47,7 +46,7 @@ def main():
     max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
     dtype = None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
-    model_name = args.model
+    model_name = "unsloth/Llama-3.2-3B-Instruct"
     dataset_path = args.dataset
     output_dir = args.output
     chat_template = "llama-3.1"  # Format to use for chat templates
@@ -221,10 +220,37 @@ def main():
     # Enable 2x faster inference
     FastLanguageModel.for_inference(model)
 
+    
+    #==========================================================================
+    # INFERENCE EXAMPLE
+    #==========================================================================
+    print("Running inference example...")
+    # Enable 2x faster inference
+    FastLanguageModel.for_inference(model)
+    print("Loading input...")
+    try:
+        with open('test.json', 'r', encoding='utf-8') as f:
+            paper = json.load(f)
+            # If it's a list with one paper, extract it
+            if isinstance(paper, list) and len(paper) > 0:
+                paper = paper[0]
+    except Exception as e:
+        print(f"Error loading input file: {e}")
+    
+    # Extract title and sections from the paper
+    try:
+        title = paper.get('title', '')
+        sections = paper.get('content', '')
+        title_and_sections = f"Title: {title}\n\nSections: {sections}"
+    except Exception as e:
+        print(f"Error extracting title and sections: {e}")
+
     # Example generation
     messages = [
-        {"role": "user", "content": "What's the main topic of research in NLP papers?"},
+        {"role": "user", "content": f" Write me an abstract for this article, <input>{title_and_sections}</input>"},
     ]
+
+    # Example generation
     inputs = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
@@ -242,7 +268,7 @@ def main():
         streamer=text_streamer,
         max_new_tokens=128,
         use_cache=True,
-        temperature=1.5,
+        temperature=1.0,
         min_p=0.1
     )
 

@@ -34,15 +34,14 @@ def create_abstract_instruction_conversation(paper: Dict[str, Any]) -> Dict[str,
     - Assistant responds with the abstract
     
     Format:
-    Instruction: Write me an abstract for this article, <input>title and sections</input>
-    Output: abstract
+    Simple ShareGPT format compatible with Llama 3.1 chat template and train_on_responses_only
     """
     # Combine title and sections as input
     title_and_sections = f"Title: {paper['title']}\n\nSections:\n{paper['sections']}"
     
     return {
         "conversations": [
-            {"role": "user", "content": f"Instruction: Write me an abstract for this article, <input>{title_and_sections}</input>"},
+            {"role": "user", "content": f"Write me an abstract for this article: {title_and_sections}"},
             {"role": "assistant", "content": paper['abstract']}
         ]
     }

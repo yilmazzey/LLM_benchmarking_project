@@ -40,8 +40,9 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=10,
                         help="Number of training epochs (overrides steps if specified)")
     parser.add_argument("--batch-size", type=int, default=12,
-                        help="Per-device training batch size (default: 12)")
+                        help="Per-device training batch size (default: 12) You can try 10-8-6")
     return parser.parse_args()
+# Overfitting'i önlemek için validation loss'u takip etmeniz ve early stopping kullanmanız faydalı olacaktır.
 
 #==============================================================================
 # MAIN FUNCTION
@@ -283,7 +284,7 @@ def main():
         streamer=text_streamer,
         max_new_tokens=2048,
         use_cache=True,
-        temperature=1.0,
+        temperature=1.5,
         min_p=0.1
     )
 
