@@ -44,6 +44,7 @@ def create_abstract_instruction_conversation(paper: Dict[str, Any]) -> Dict[str,
     
     return {
         "conversations": [
+            {"role": "system", "content": "You are a helpful AI assistant that generates high-quality academic abstracts."},
             {"role": "user", "content": f"Write me an abstract for this article: {title_and_sections}"},
             {"role": "assistant", "content": paper.get('abstract', '')}
         ]

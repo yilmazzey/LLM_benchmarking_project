@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# 2-*- coding: utf-8 -*-
 """
 Llama3.2 AlpacaFT Fine-tuning Script (Local Dataset Version)
 
@@ -173,14 +173,6 @@ def main():
         args=training_args,
     )
 
-    # Train on responses only
-    print("Setting up response-only training...")
-    trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
-    )
-
     # ======= Training =======
     print("Starting training...")
     # Show GPU info
@@ -194,6 +186,14 @@ def main():
         print("Warning: No GPU detected. Training will be very slow.")
         start_gpu_memory = 0
         max_memory = 0
+
+    # Train on responses only
+    print("Setting up response-only training...")
+    trainer = train_on_responses_only(
+        trainer,
+        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
+        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
+    )
 
     trainer_stats = trainer.train()
 
@@ -247,6 +247,7 @@ def main():
 
     # Example generation
     messages = [
+        {"role": "system", "content": "You are a helpful AI assistant that generates high-quality academic abstracts."},
         {"role": "user", "content": f" Write me an abstract for this article, <input>{title_and_sections}</input>"},
     ]
 
