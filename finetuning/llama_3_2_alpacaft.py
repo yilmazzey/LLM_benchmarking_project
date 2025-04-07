@@ -267,7 +267,7 @@ def main():
     _ = model.generate(
         input_ids=inputs, 
         streamer=text_streamer,
-        max_new_tokens=128,
+        max_new_tokens=2048,
         use_cache=True,
         temperature=1.0,
         min_p=0.1
