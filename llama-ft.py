@@ -26,8 +26,9 @@ from unsloth.chat_templates import get_chat_template, standardize_sharegpt, trai
 
 # Model configurations
 MODEL_CONFIGS = {
+    "1b": {"model_name": "unsloth/Llama-3.2-1B-Instruct", "output_name": "llama-3.2-1b-abstract-lora"},
     "3b": {"model_name": "unsloth/Llama-3.2-3B-Instruct", "output_name": "llama-3.2-3b-abstract-lora"},
-    "1b": {"model_name": "unsloth/Llama-3.2-1B-Instruct", "output_name": "llama-3.2-1b-abstract-lora"}
+    "8b": {"model_name": "unsloth/Meta-Llama-3.1-8B-Instruct", "output_name": "llama-3.1-8b-abstract-lora"},
 }
 
 # Prompt templates
@@ -37,8 +38,8 @@ SYSTEM_PROMPT = """You are an expert scientific abstract writer with deep knowle
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Fine-tune Llama 3.2 for abstract generation")
-    parser.add_argument("--model", choices=["3b", "1b"], default="3b",
-                        help="Model size to fine-tune (default: 3b)")
+    parser.add_argument("--model", choices=["1b", "3b", "8b"], default="3b",
+                        help="Model size to fine-tune: 1b, 3b, or 8b (default: 3b)")
     parser.add_argument("--epochs", type=int, default=3,
                         help="Number of training epochs (default: 3)")
     parser.add_argument("--output_dir", default="./lora_adapters",

@@ -47,10 +47,30 @@ uv pip install -r requirements.txt
 
 ### 4. Run Training
 
+**Sequential (one after another):**
 ```bash
-# 3B first, then 1B
 python llama-ft.py --model 3b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05 && \
 python llama-ft.py --model 1b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05
+```
+
+**Parallel (all at once - B200 180GB supports this):**
+```bash
+# Terminal 1
+python llama-ft.py --model 3b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05
+
+# Terminal 2
+python llama-ft.py --model 1b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05
+
+# Terminal 3 (optional)
+python llama-ft.py --model 8b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05
+```
+
+**One-liner for parallel (background jobs):**
+```bash
+python llama-ft.py --model 3b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05 &
+python llama-ft.py --model 1b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05 &
+python llama-ft.py --model 8b --epochs 2 --batch_size 8 --gradient_accumulation 8 --eval_split 0.05 &
+wait
 ```
 
 ---
@@ -90,7 +110,7 @@ The script expects a JSON file (`veri.json`) with the following structure:
 
 | Parameter | Value |
 |-----------|-------|
-| Base Models | Llama 3.2 3B-Instruct, Llama 3.2 1B-Instruct |
+| Base Models | Llama 3.2 1B, Llama 3.2 3B, Llama 3.1 8B |
 | Quantization | 4-bit (QLoRA) |
 | LoRA Rank (r) | 16 |
 | LoRA Alpha | 16 |
@@ -146,7 +166,7 @@ python llama-ft.py --model 1b --epochs 2 --batch_size 8 --gradient_accumulation 
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `--model` | `3b` | Model size: `3b` or `1b` |
+| `--model` | `3b` | Model size: `1b`, `3b`, or `8b` |
 | `--epochs` | `3` | Number of training epochs |
 | `--batch_size` | `1` | Per-device batch size |
 | `--gradient_accumulation` | `8` | Gradient accumulation steps |
@@ -248,12 +268,13 @@ print(generated_abstract)
 
 ## Expected Results
 
-| Model | Train Loss | Eval Loss | Training Time* |
-|-------|------------|-----------|----------------|
-| 3B | ~1.0-1.5 | ~1.2-1.8 | ~30-45 min |
-| 1B | ~1.2-1.8 | ~1.4-2.0 | ~15-25 min |
+| Model | VRAM (QLoRA) | Train Loss | Eval Loss | Training Time* |
+|-------|--------------|------------|-----------|----------------|
+| 1B | ~4-6 GB | ~1.2-1.8 | ~1.4-2.0 | ~10-15 min |
+| 3B | ~8-12 GB | ~1.0-1.5 | ~1.2-1.8 | ~20-30 min |
+| 8B | ~15-20 GB | ~0.8-1.2 | ~1.0-1.5 | ~40-60 min |
 
-*Estimated on B200 GPU
+*Estimated on B200 GPU. Parallel training supported (~30-40GB total for all 3).
 
 ## Troubleshooting
 
