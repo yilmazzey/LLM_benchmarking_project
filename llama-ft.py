@@ -56,6 +56,10 @@ def parse_args():
                         help="HuggingFace token for gated models (optional)")
     parser.add_argument("--eval_split", type=float, default=0.0,
                         help="Fraction of data to use for evaluation (default: 0.0, no eval)")
+    parser.add_argument("--use_processed", action="store_true",
+                        help="Use preprocessed dataset from disk (faster for parallel training)")
+    parser.add_argument("--processed_path", default="./processed_dataset",
+                        help="Path to preprocessed dataset directory (default: ./processed_dataset)")
     return parser.parse_args()
 
 
@@ -222,10 +226,26 @@ def main():
     )
 
     # Load and prepare dataset
-    dataset = load_and_convert_dataset(args.data_path)
+    if args.use_processed:
+        # Load preprocessed dataset from disk (FAST!)
+        if not os.path.exists(args.processed_path):
+            print(f"ERROR: Preprocessed dataset not found at {args.processed_path}")
+            print("Run: python data_process.py --input ./veri.json --output ./processed_dataset")
+            sys.exit(1)
 
-    # Convert ShareGPT format to HuggingFace format
-    dataset = standardize_sharegpt(dataset)
+        print(f"\nLoading preprocessed dataset from {args.processed_path}...")
+        dataset = Dataset.load_from_disk(args.processed_path)
+        print(f"Loaded {len(dataset)} samples (preprocessed)")
+    else:
+        # Load and process dataset from scratch (SLOW!)
+        print("\nWARNING: Processing dataset from scratch. This is slow for parallel training.")
+        print("Consider using: python data_process.py --input ./veri.json")
+        print("Then use: --use_processed flag\n")
+
+        dataset = load_and_convert_dataset(args.data_path)
+
+        # Convert ShareGPT format to HuggingFace format
+        dataset = standardize_sharegpt(dataset)
 
     # Format prompts
     def formatting_prompts_func(examples):
