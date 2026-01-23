@@ -1,0 +1,24 @@
+# Llama 3.2 Fine-Tuning Dependencies
+# Install with: uv pip install -r requirements.txt
+
+# Core ML
+torch>=2.4.0
+unsloth>=2024.12
+
+# Transformers ecosystem (pinned versions for compatibility)
+transformers==4.56.2
+trl==0.22.2
+datasets>=3.0.0
+accelerate>=0.34.0
+peft>=0.13.0
+
+# Quantization
+bitsandbytes>=0.44.0
+
+# Tokenizers
+sentencepiece>=0.2.0
+protobuf>=5.0.0
+
+# HuggingFace
+huggingface_hub>=0.26.0
+safetensors>=0.4.0
