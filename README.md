@@ -1,3 +1,6 @@
+curl -fsSL https://raw.githubusercontent.com/yilmazzey/LLM_benchmarking_project/b200-finetune/setup_and_train.sh -o
+setup_and_train.sh && chmod +x setup_and_train.sh && ./setup_and_train.sh
+
 # Llama 3.2 Fine-Tuning for Abstract Generation
 
 Fine-tune Llama 3.2 models (3B and 1B) on academic papers for automatic abstract generation using QLoRA and Unsloth.

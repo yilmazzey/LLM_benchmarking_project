@@ -265,7 +265,8 @@ echo -e "  Epochs: ${GREEN}$EPOCHS${NC}"
 echo -e "  Batch Size: ${GREEN}$BATCH_SIZE${NC}"
 echo -e "  Gradient Accumulation: ${GREEN}$GRAD_ACCUM${NC}"
 echo -e "  Effective Batch Size: ${GREEN}$((BATCH_SIZE * GRAD_ACCUM))${NC}"
-echo -e "  Eval Split: ${GREEN}$EVAL_SPLIT${NC} ($(echo "$EVAL_SPLIT * 100" | bc)% for validation)"
+EVAL_PERCENT=$(awk "BEGIN {print $EVAL_SPLIT * 100}")
+echo -e "  Eval Split: ${GREEN}$EVAL_SPLIT${NC} (${EVAL_PERCENT}% for validation)"
 echo ""
 
 #################################################
@@ -311,8 +312,24 @@ if ! check_command uv; then
 
     # Add uv to PATH for current session
     export PATH="$HOME/.cargo/bin:$PATH"
+    export PATH="$HOME/.local/bin:$PATH"
 
-    print_success "uv installed"
+    # Source uv env if it exists
+    if [ -f "$HOME/.cargo/env" ]; then
+        source "$HOME/.cargo/env"
+    fi
+    if [ -f "$HOME/.local/bin/env" ]; then
+        source "$HOME/.local/bin/env"
+    fi
+
+    # Verify uv is now accessible
+    if ! check_command uv; then
+        print_error "uv installation failed or not in PATH"
+        print_info "Please install uv manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
+        exit 1
+    fi
+
+    print_success "uv installed and configured"
 else
     print_info "uv already installed"
 fi
@@ -389,7 +406,7 @@ print_success "Processed dataset validated"
 
 # Show dataset info if available
 if [ -f "processed_dataset/dataset_info.json" ]; then
-    SAMPLE_COUNT=$(grep -o '"num_examples": [0-9]*' processed_dataset/dataset_info.json | grep -o '[0-9]*')
+    SAMPLE_COUNT=$(grep -o '"num_examples": [0-9]*' processed_dataset/dataset_info.json | grep -o '[0-9]*' | head -1 || echo "")
     if [ ! -z "$SAMPLE_COUNT" ]; then
         print_info "Dataset samples: $SAMPLE_COUNT"
     fi
@@ -509,7 +526,8 @@ echo "  Epochs: $EPOCHS"
 echo "  Batch Size: $BATCH_SIZE"
 echo "  Gradient Accumulation: $GRAD_ACCUM"
 echo "  Effective Batch Size: $((BATCH_SIZE * GRAD_ACCUM))"
-echo "  Eval Split: $EVAL_SPLIT ($(echo "$EVAL_SPLIT * 100" | bc)%)"
+EVAL_PERCENT=$(awk "BEGIN {print $EVAL_SPLIT * 100}")
+echo "  Eval Split: $EVAL_SPLIT (${EVAL_PERCENT}%)"
 echo "  Mode: --use_processed (fast parallel training)"
 echo ""
 print_info "To attach to the session:"

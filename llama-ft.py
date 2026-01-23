@@ -10,6 +10,9 @@ Usage:
     python llama-ft.py --model 1b --epochs 3 --data_path ./veri.json
 """
 
+from unsloth import FastLanguageModel
+from unsloth.chat_templates import get_chat_template, standardize_sharegpt, train_on_responses_only
+
 import argparse
 import json
 import os
@@ -20,8 +23,6 @@ import torch
 from datasets import Dataset
 from transformers import DataCollatorForSeq2Seq
 from trl import SFTConfig, SFTTrainer
-from unsloth import FastLanguageModel
-from unsloth.chat_templates import get_chat_template, standardize_sharegpt, train_on_responses_only
 
 
 # Model configurations
@@ -219,11 +220,10 @@ def main():
         loftq_config=None,
     )
 
-    # Setup chat template
-    tokenizer = get_chat_template(
-        tokenizer,
-        chat_template="llama-3.1",
-    )
+    # Use native Llama chat template (don't use get_chat_template - incompatible with new TRL)
+    # Llama-3.2-Instruct already comes with proper chat template
+    print(f"Using native chat template")
+    print(f"eos_token: {tokenizer.eos_token} (id: {tokenizer.eos_token_id})")
 
     # Load and prepare dataset
     if args.use_processed:
@@ -279,7 +279,7 @@ def main():
     total_steps = steps_per_epoch * args.epochs
     print(f"\nTraining steps: ~{steps_per_epoch} per epoch, ~{total_steps} total")
 
-    # Setup SFTConfig
+    # Setup SFTConfig - must include eos_token to override TRL's default '<EOS_TOKEN>'
     sft_config_kwargs = {
         "per_device_train_batch_size": args.batch_size,
         "gradient_accumulation_steps": args.gradient_accumulation,
@@ -295,6 +295,7 @@ def main():
         "output_dir": output_path,
         "report_to": "none",
         "bf16": True,
+        "eos_token": None,  # Use tokenizer's native eos_token (don't use TRL's default '<EOS_TOKEN>')
     }
 
     # Add eval settings if eval dataset exists
@@ -308,12 +309,9 @@ def main():
     # Setup trainer
     trainer_kwargs = {
         "model": model,
-        "tokenizer": tokenizer,
+        "processing_class": tokenizer,  # Changed from "tokenizer" to "processing_class" for TRL compatibility
         "train_dataset": dataset,
-        "dataset_text_field": "text",
-        "max_seq_length": args.max_seq_length,
         "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer),
-        "packing": False,
         "args": SFTConfig(**sft_config_kwargs),
     }
 
