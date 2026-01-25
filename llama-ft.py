@@ -11,7 +11,7 @@ Usage:
 """
 
 from unsloth import FastLanguageModel
-from unsloth.chat_templates import get_chat_template, standardize_sharegpt, train_on_responses_only
+from unsloth.chat_templates import standardize_sharegpt
 
 import argparse
 import json
@@ -21,8 +21,8 @@ from datetime import datetime
 
 import torch
 from datasets import Dataset
-from transformers import DataCollatorForSeq2Seq, TrainerCallback
-from trl import SFTConfig, SFTTrainer
+from transformers import TrainerCallback
+from trl import SFTConfig, SFTTrainer, DataCollatorForCompletionOnlyLM
 
 
 # Model configurations
@@ -318,21 +318,6 @@ def main():
         sft_config_kwargs["metric_for_best_model"] = "eval_loss"
         sft_config_kwargs["greater_is_better"] = False
 
-    # Setup trainer
-    trainer_kwargs = {
-        "model": model,
-        "processing_class": tokenizer,  # Changed from "tokenizer" to "processing_class" for TRL compatibility
-        "train_dataset": dataset,
-        "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer),
-        "args": SFTConfig(**sft_config_kwargs),
-        "callbacks": [LossLoggingCallback()],  # Add loss logging callback
-    }
-
-    if eval_dataset is not None:
-        trainer_kwargs["eval_dataset"] = eval_dataset
-
-    trainer = SFTTrainer(**trainer_kwargs)
-
     # DEBUG: Print sample formatted text to verify chat template format
     print("\n" + "=" * 60)
     print("SAMPLE FORMATTED TEXT (first 2000 chars):")
@@ -342,19 +327,32 @@ def main():
     print("..." if len(sample_text) > 2000 else "")
     print("=" * 60 + "\n")
 
-    # Train only on assistant responses (mask instruction tokens)
-    # Based on debug output, the exact format is:
-    # <|start_header_id|>system<|end_header_id|>\n\n{system}<|eot_id|>
-    # <|start_header_id|>user<|end_header_id|>\n\n{user}<|eot_id|>
-    # <|start_header_id|>assistant<|end_header_id|>\n\n{assistant}<|eot_id|>
+    # Use DataCollatorForCompletionOnlyLM to mask instruction tokens
+    # This is more reliable than train_on_responses_only
+    # For Llama 3.2, the response starts with: <|start_header_id|>assistant<|end_header_id|>\n\n
+    response_template = "<|start_header_id|>assistant<|end_header_id|>\n\n"
+    print(f"Using DataCollatorForCompletionOnlyLM with response_template: {repr(response_template)}")
 
-    # We want to mask everything from system start until assistant response starts
-    print("Applying train_on_responses_only with correct Llama 3.2 separators...")
-    trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<|start_header_id|>system<|end_header_id|>\n\n",
-        response_part="<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
+    data_collator = DataCollatorForCompletionOnlyLM(
+        response_template=response_template,
+        tokenizer=tokenizer,
+        mlm=False,
     )
+
+    # Setup trainer
+    trainer_kwargs = {
+        "model": model,
+        "processing_class": tokenizer,  # Changed from "tokenizer" to "processing_class" for TRL compatibility
+        "train_dataset": dataset,
+        "data_collator": data_collator,  # Use completion-only collator
+        "args": SFTConfig(**sft_config_kwargs),
+        "callbacks": [LossLoggingCallback()],  # Add loss logging callback
+    }
+
+    if eval_dataset is not None:
+        trainer_kwargs["eval_dataset"] = eval_dataset
+
+    trainer = SFTTrainer(**trainer_kwargs)
 
     # Show memory stats before training
     start_gpu_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
