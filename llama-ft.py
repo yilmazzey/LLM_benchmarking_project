@@ -21,7 +21,7 @@ from datetime import datetime
 
 import torch
 from datasets import Dataset
-from transformers import DataCollatorForSeq2Seq
+from transformers import DataCollatorForSeq2Seq, TrainerCallback
 from trl import SFTConfig, SFTTrainer
 
 
@@ -142,6 +142,18 @@ def load_and_convert_dataset(data_path):
 
     print(f"Valid articles for training: {len(conversations)}")
     return Dataset.from_list(conversations)
+
+
+class LossLoggingCallback(TrainerCallback):
+    """Callback to print loss at each step."""
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        """Called when logging metrics."""
+        if logs is not None and "loss" in logs:
+            step = state.global_step
+            loss = logs["loss"]
+            lr = logs.get("learning_rate", 0)
+            print(f"  Step {step:4d} | Loss: {loss:.4f} | LR: {lr:.2e}")
 
 
 def check_cuda():
@@ -286,7 +298,7 @@ def main():
         "warmup_ratio": 0.03,
         "num_train_epochs": args.epochs,
         "learning_rate": 2e-4,
-        "logging_steps": 10,
+        "logging_steps": 1,
         "save_strategy": "epoch",  # Save checkpoint every epoch
         "optim": "adamw_8bit",
         "weight_decay": 0.01,
@@ -313,6 +325,7 @@ def main():
         "train_dataset": dataset,
         "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer),
         "args": SFTConfig(**sft_config_kwargs),
+        "callbacks": [LossLoggingCallback()],  # Add loss logging callback
     }
 
     if eval_dataset is not None:
@@ -320,11 +333,22 @@ def main():
 
     trainer = SFTTrainer(**trainer_kwargs)
 
+    # DEBUG: Print sample formatted text to verify chat template format
+    print("\n" + "=" * 60)
+    print("SAMPLE FORMATTED TEXT (first 1500 chars):")
+    print("=" * 60)
+    sample_text = dataset[0]["text"]
+    print(repr(sample_text[:1500]))  # Use repr() to see exact whitespace/newlines
+    print("..." if len(sample_text) > 1500 else "")
+    print("=" * 60 + "\n")
+
     # Train only on assistant responses (mask instruction tokens)
+    # For Llama 3.2/3.1, we need to match the EXACT format from the chat template
+    # Common issue: newlines and <|eot_id|> tokens must match exactly
     trainer = train_on_responses_only(
         trainer,
         instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
+        response_part="<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
     )
 
     # Show memory stats before training
