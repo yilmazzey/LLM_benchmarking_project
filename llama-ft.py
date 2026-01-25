@@ -11,7 +11,7 @@ Usage:
 """
 
 from unsloth import FastLanguageModel
-from unsloth.chat_templates import standardize_sharegpt
+from unsloth.chat_templates import standardize_sharegpt, train_on_responses_only
 
 import argparse
 import json
@@ -21,7 +21,7 @@ from datetime import datetime
 
 import torch
 from datasets import Dataset
-from transformers import TrainerCallback, DataCollatorForCompletionOnlyLM
+from transformers import TrainerCallback, DataCollatorForSeq2Seq
 from trl import SFTConfig, SFTTrainer
 
 
@@ -318,41 +318,36 @@ def main():
         sft_config_kwargs["metric_for_best_model"] = "eval_loss"
         sft_config_kwargs["greater_is_better"] = False
 
-    # DEBUG: Print sample formatted text to verify chat template format
-    print("\n" + "=" * 60)
-    print("SAMPLE FORMATTED TEXT (first 2000 chars):")
-    print("=" * 60)
-    sample_text = dataset[0]["text"]
-    print(repr(sample_text[:2000]))  # Use repr() to see exact whitespace/newlines
-    print("..." if len(sample_text) > 2000 else "")
-    print("=" * 60 + "\n")
-
-    # Use DataCollatorForCompletionOnlyLM to mask instruction tokens
-    # This is more reliable than train_on_responses_only
-    # For Llama 3.2, the response starts with: <|start_header_id|>assistant<|end_header_id|>\n\n
-    response_template = "<|start_header_id|>assistant<|end_header_id|>\n\n"
-    print(f"Using DataCollatorForCompletionOnlyLM with response_template: {repr(response_template)}")
-
-    data_collator = DataCollatorForCompletionOnlyLM(
-        response_template=response_template,
-        tokenizer=tokenizer,
-        mlm=False,
-    )
-
-    # Setup trainer
+    # Setup trainer (following official Unsloth notebook)
     trainer_kwargs = {
         "model": model,
-        "processing_class": tokenizer,  # Changed from "tokenizer" to "processing_class" for TRL compatibility
+        "tokenizer": tokenizer,
         "train_dataset": dataset,
-        "data_collator": data_collator,  # Use completion-only collator
+        "dataset_text_field": "text",
+        "max_seq_length": args.max_seq_length,
+        "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer),
+        "dataset_num_proc": 2,
+        "packing": False,
         "args": SFTConfig(**sft_config_kwargs),
-        "callbacks": [LossLoggingCallback()],  # Add loss logging callback
+        "callbacks": [LossLoggingCallback()],
     }
 
     if eval_dataset is not None:
         trainer_kwargs["eval_dataset"] = eval_dataset
 
     trainer = SFTTrainer(**trainer_kwargs)
+
+    # Train only on assistant responses (following official Unsloth approach)
+    # This masks user prompts and only trains on assistant responses
+    print("\nApplying train_on_responses_only...")
+    print(f"  instruction_part: '<|start_header_id|>user<|end_header_id|>\\n\\n'")
+    print(f"  response_part: '<|start_header_id|>assistant<|end_header_id|>\\n\\n'")
+
+    trainer = train_on_responses_only(
+        trainer,
+        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
+        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
+    )
 
     # Show memory stats before training
     start_gpu_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
