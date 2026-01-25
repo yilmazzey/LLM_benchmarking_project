@@ -21,8 +21,8 @@ from datetime import datetime
 
 import torch
 from datasets import Dataset
-from transformers import TrainerCallback
-from trl import SFTConfig, SFTTrainer, DataCollatorForCompletionOnlyLM
+from transformers import TrainerCallback, DataCollatorForCompletionOnlyLM
+from trl import SFTConfig, SFTTrainer
 
 
 # Model configurations
