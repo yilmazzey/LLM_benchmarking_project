@@ -11,7 +11,7 @@ Usage:
 """
 
 from unsloth import FastLanguageModel
-from unsloth.chat_templates import standardize_sharegpt, train_on_responses_only
+from unsloth.chat_templates import standardize_sharegpt    # still needed
 
 import argparse
 import json
@@ -34,18 +34,6 @@ MODEL_CONFIGS = {
 
 # Prompt templates
 SYSTEM_PROMPT = """You are an expert scientific abstract writer with deep knowledge of academic writing conventions."""
-
-# Alpaca prompt template (for 8B model)
-ALPACA_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
-
-### Instruction:
-{}
-
-### Input:
-{}
-
-### Response:
-{}"""
 
 
 def parse_args():
@@ -103,7 +91,6 @@ Output ONLY the abstract text."""
 
 def load_and_convert_dataset(data_path):
     """Load local JSON dataset and convert to ShareGPT format."""
-    # Check if file exists
     if not os.path.exists(data_path):
         print(f"ERROR: Data file not found: {data_path}")
         sys.exit(1)
@@ -123,12 +110,10 @@ def load_and_convert_dataset(data_path):
     skipped = 0
 
     for idx, article in enumerate(articles):
-        # Safe field extraction with defaults
         title = article.get("title", "").replace("_", " ").title()
         content = article.get("content", "")
         abstract = article.get("abstract", "")
 
-        # Skip articles with empty content or abstract
         if not content or not content.strip():
             skipped += 1
             continue
@@ -138,8 +123,6 @@ def load_and_convert_dataset(data_path):
         if not title or not title.strip():
             title = "Untitled Paper"
 
-        # Don't include system message in conversation - chat template adds it automatically
-        # This matches the official Unsloth notebook approach
         conversation = [
             {"from": "human", "value": create_user_prompt(title, content)},
             {"from": "gpt", "value": abstract}
@@ -159,9 +142,7 @@ def load_and_convert_dataset(data_path):
 
 class LossLoggingCallback(TrainerCallback):
     """Callback to print loss at each step."""
-
     def on_log(self, args, state, control, logs=None, **kwargs):
-        """Called when logging metrics."""
         if logs is not None and "loss" in logs:
             step = state.global_step
             loss = logs["loss"]
@@ -169,33 +150,7 @@ class LossLoggingCallback(TrainerCallback):
             print(f"  Step {step:4d} | Loss: {loss:.4f} | LR: {lr:.2e}")
 
 
-def formatting_prompts_func_alpaca(examples, tokenizer):
-    """Format prompts for 8B model using Alpaca template."""
-    convos = examples["conversations"]
-    texts = []
-    EOS_TOKEN = tokenizer.eos_token
-
-    for convo in convos:
-        # Extract user prompt and assistant response
-        user_msg = convo[0]["content"] if convo[0]["role"] == "user" else ""
-        assistant_msg = convo[1]["content"] if len(convo) > 1 and convo[1]["role"] == "assistant" else ""
-
-        # For alpaca: instruction is the task, input is empty, output is response
-        text = ALPACA_PROMPT.format(user_msg, "", assistant_msg) + EOS_TOKEN
-        texts.append(text)
-
-    return {"text": texts}
-
-
-def formatting_prompts_func_chat(examples, tokenizer):
-    """Format prompts for 1B/3B models using chat template."""
-    convos = examples["conversations"]
-    texts = [tokenizer.apply_chat_template(convo, tokenize=False, add_generation_prompt=False) for convo in convos]
-    return {"text": texts}
-
-
 def check_cuda():
-    """Check CUDA availability and return device info."""
     if not torch.cuda.is_available():
         print("ERROR: CUDA is not available. This script requires a GPU.")
         print("If you have a GPU, make sure CUDA drivers are installed.")
@@ -219,10 +174,8 @@ def main():
     print("LLAMA 3.2 FINE-TUNING FOR ABSTRACT GENERATION")
     print("=" * 60)
 
-    # Check CUDA first
     gpu_name, gpu_memory = check_cuda()
 
-    # Get model configuration
     model_config = MODEL_CONFIGS[args.model]
     print(f"\nModel: {model_config['model_name']}")
     print(f"Epochs: {args.epochs}")
@@ -234,14 +187,11 @@ def main():
     if args.eval_split > 0:
         print(f"Eval split: {args.eval_split * 100:.1f}%")
 
-    # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # Training settings
-    dtype = None  # Auto detection (bfloat16 for Ampere+)
-    load_in_4bit = True  # 4-bit quantization (QLoRA)
+    dtype = None
+    load_in_4bit = True
 
-    # Load model
     print(f"\nLoading model: {model_config['model_name']}...")
     model_kwargs = {
         "model_name": model_config['model_name'],
@@ -254,7 +204,6 @@ def main():
 
     model, tokenizer = FastLanguageModel.from_pretrained(**model_kwargs)
 
-    # Add LoRA adapters
     print("Adding LoRA adapters...")
     model = FastLanguageModel.get_peft_model(
         model,
@@ -270,59 +219,31 @@ def main():
         loftq_config=None,
     )
 
-    # Configure chat template based on model size
-    if args.model == "8b":
-        # 8B uses Alpaca template (no get_chat_template needed)
-        print(f"Using Alpaca prompt template for 8B model")
-        print(f"eos_token: {tokenizer.eos_token} (id: {tokenizer.eos_token_id})")
-        use_alpaca = True
-    else:
-        # 1B/3B use Llama-3.1 chat template
-        from unsloth.chat_templates import get_chat_template
+    print(f"Using native chat template")
+    print(f"eos_token: {tokenizer.eos_token} (id: {tokenizer.eos_token_id})")
 
-        tokenizer = get_chat_template(
-            tokenizer,
-            chat_template="llama-3.1",
-        )
-        print(f"Using Llama-3.1 chat template for {args.model.upper()} model")
-        print(f"eos_token: {tokenizer.eos_token} (id: {tokenizer.eos_token_id})")
-        use_alpaca = False
-
-    # Load and prepare dataset
     if args.use_processed:
-        # Load preprocessed dataset from disk (FAST!)
         if not os.path.exists(args.processed_path):
             print(f"ERROR: Preprocessed dataset not found at {args.processed_path}")
             print("Run: python data_process.py --input ./veri.json --output ./processed_dataset")
             sys.exit(1)
-
         print(f"\nLoading preprocessed dataset from {args.processed_path}...")
         dataset = Dataset.load_from_disk(args.processed_path)
         print(f"Loaded {len(dataset)} samples (preprocessed)")
     else:
-        # Load and process dataset from scratch (SLOW!)
         print("\nWARNING: Processing dataset from scratch. This is slow for parallel training.")
         print("Consider using: python data_process.py --input ./veri.json")
         print("Then use: --use_processed flag\n")
-
         dataset = load_and_convert_dataset(args.data_path)
-
-        # Convert ShareGPT format to HuggingFace format
         dataset = standardize_sharegpt(dataset)
 
-    # Format prompts based on model type
-    if use_alpaca:
-        dataset = dataset.map(
-            lambda examples: formatting_prompts_func_alpaca(examples, tokenizer),
-            batched=True
-        )
-    else:
-        dataset = dataset.map(
-            lambda examples: formatting_prompts_func_chat(examples, tokenizer),
-            batched=True
-        )
+    def formatting_prompts_func(examples):
+        convos = examples["conversations"]
+        texts = [tokenizer.apply_chat_template(convo, tokenize=False, add_generation_prompt=False) for convo in convos]
+        return {"text": texts}
 
-    # Split dataset if eval_split is specified
+    dataset = dataset.map(formatting_prompts_func, batched=True)
+
     eval_dataset = None
     if args.eval_split > 0:
         split = dataset.train_test_split(test_size=args.eval_split, seed=3407)
@@ -332,7 +253,6 @@ def main():
     else:
         print(f"\nDataset prepared: {len(dataset)} samples (no eval split)")
 
-    # Create output directory with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_name = f"{model_config['output_name']}_ep{args.epochs}_{timestamp}"
     output_path = os.path.join(args.output_dir, output_name)
@@ -340,13 +260,11 @@ def main():
 
     print(f"Output path: {output_path}")
 
-    # Calculate steps info
     total_samples = len(dataset)
     steps_per_epoch = total_samples // (args.batch_size * args.gradient_accumulation)
     total_steps = steps_per_epoch * args.epochs
     print(f"\nTraining steps: ~{steps_per_epoch} per epoch, ~{total_steps} total")
 
-    # Setup SFTConfig - must include eos_token to override TRL's default '<EOS_TOKEN>'
     sft_config_kwargs = {
         "per_device_train_batch_size": args.batch_size,
         "gradient_accumulation_steps": args.gradient_accumulation,
@@ -354,7 +272,7 @@ def main():
         "num_train_epochs": args.epochs,
         "learning_rate": 2e-4,
         "logging_steps": 1,
-        "save_strategy": "epoch",  # Save checkpoint every epoch
+        "save_strategy": "epoch",
         "optim": "adamw_8bit",
         "weight_decay": 0.01,
         "lr_scheduler_type": "cosine",
@@ -362,10 +280,9 @@ def main():
         "output_dir": output_path,
         "report_to": "none",
         "bf16": True,
-        "eos_token": None,  # Use tokenizer's native eos_token (don't use TRL's default '<EOS_TOKEN>')
+        "eos_token": None,
     }
 
-    # Add eval settings if eval dataset exists
     if eval_dataset is not None:
         sft_config_kwargs["eval_strategy"] = "epoch"
         sft_config_kwargs["per_device_eval_batch_size"] = args.batch_size
@@ -373,14 +290,13 @@ def main():
         sft_config_kwargs["metric_for_best_model"] = "eval_loss"
         sft_config_kwargs["greater_is_better"] = False
 
-    # Setup trainer (following official Unsloth notebook)
     trainer_kwargs = {
         "model": model,
         "tokenizer": tokenizer,
         "train_dataset": dataset,
         "dataset_text_field": "text",
         "max_seq_length": args.max_seq_length,
-        "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer) if not use_alpaca else None,
+        "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer),
         "dataset_num_proc": 2,
         "packing": False,
         "args": SFTConfig(**sft_config_kwargs),
@@ -392,32 +308,21 @@ def main():
 
     trainer = SFTTrainer(**trainer_kwargs)
 
-    # Train only on assistant responses (for 1B/3B models using chat template)
-    if not use_alpaca:
-        print("\nApplying train_on_responses_only...")
-        print(f"  instruction_part: '<|start_header_id|>user<|end_header_id|>\\n\\n'")
-        print(f"  response_part: '<|start_header_id|>assistant<|end_header_id|>\\n\\n'")
+    # ────────────────────────────────────────────────────────────────
+    #   Removed: train_on_responses_only(...)
+    #   Reason: Causes over-masking (-100 everywhere) on Llama-3.2-Instruct
+    #   Native chat template + TRL already handles assistant-only loss correctly
+    # ────────────────────────────────────────────────────────────────
 
-        trainer = train_on_responses_only(
-            trainer,
-            instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-            response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
-        )
-    else:
-        print("\nUsing full sequence training (Alpaca template)")
-
-    # Show memory stats before training
     start_gpu_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
     print(f"\nReserved memory before training: {start_gpu_memory} GB")
 
-    # Train
     print("\n" + "=" * 60)
     print("STARTING TRAINING")
     print("=" * 60 + "\n")
 
     trainer_stats = trainer.train()
 
-    # Show final stats
     used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
     used_memory_for_lora = round(used_memory - start_gpu_memory, 3)
     used_percentage = round(used_memory / gpu_memory * 100, 3)
@@ -433,7 +338,6 @@ def main():
     print(f"Peak reserved memory: {used_memory} GB ({used_percentage:.1f}%)")
     print(f"Peak memory for training: {used_memory_for_lora} GB")
 
-    # Save final LoRA adapters
     final_output_path = os.path.join(output_path, "final")
     os.makedirs(final_output_path, exist_ok=True)
     print(f"\nSaving final LoRA adapters to {final_output_path}...")
