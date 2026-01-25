@@ -105,8 +105,9 @@ def load_and_convert_dataset(data_path):
         if not title or not title.strip():
             title = "Untitled Paper"
 
+        # Don't include system message in conversation - chat template adds it automatically
+        # This matches the official Unsloth notebook approach
         conversation = [
-            {"from": "system", "value": SYSTEM_PROMPT},
             {"from": "human", "value": create_user_prompt(title, content)},
             {"from": "gpt", "value": abstract}
         ]
