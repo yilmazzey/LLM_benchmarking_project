@@ -335,19 +335,24 @@ def main():
 
     # DEBUG: Print sample formatted text to verify chat template format
     print("\n" + "=" * 60)
-    print("SAMPLE FORMATTED TEXT (first 1500 chars):")
+    print("SAMPLE FORMATTED TEXT (first 2000 chars):")
     print("=" * 60)
     sample_text = dataset[0]["text"]
-    print(repr(sample_text[:1500]))  # Use repr() to see exact whitespace/newlines
-    print("..." if len(sample_text) > 1500 else "")
+    print(repr(sample_text[:2000]))  # Use repr() to see exact whitespace/newlines
+    print("..." if len(sample_text) > 2000 else "")
     print("=" * 60 + "\n")
 
     # Train only on assistant responses (mask instruction tokens)
-    # For Llama 3.2/3.1, we need to match the EXACT format from the chat template
-    # Common issue: newlines and <|eot_id|> tokens must match exactly
+    # Based on debug output, the exact format is:
+    # <|start_header_id|>system<|end_header_id|>\n\n{system}<|eot_id|>
+    # <|start_header_id|>user<|end_header_id|>\n\n{user}<|eot_id|>
+    # <|start_header_id|>assistant<|end_header_id|>\n\n{assistant}<|eot_id|>
+
+    # We want to mask everything from system start until assistant response starts
+    print("Applying train_on_responses_only with correct Llama 3.2 separators...")
     trainer = train_on_responses_only(
         trainer,
-        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
+        instruction_part="<|start_header_id|>system<|end_header_id|>\n\n",
         response_part="<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
     )
 
