@@ -35,6 +35,18 @@ MODEL_CONFIGS = {
 # Prompt templates
 SYSTEM_PROMPT = """You are an expert scientific abstract writer with deep knowledge of academic writing conventions."""
 
+# Alpaca prompt template (for 8B model)
+ALPACA_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+### Instruction:
+{}
+
+### Input:
+{}
+
+### Response:
+{}"""
+
 
 def parse_args():
     """Parse command-line arguments."""
@@ -157,6 +169,31 @@ class LossLoggingCallback(TrainerCallback):
             print(f"  Step {step:4d} | Loss: {loss:.4f} | LR: {lr:.2e}")
 
 
+def formatting_prompts_func_alpaca(examples, tokenizer):
+    """Format prompts for 8B model using Alpaca template."""
+    convos = examples["conversations"]
+    texts = []
+    EOS_TOKEN = tokenizer.eos_token
+
+    for convo in convos:
+        # Extract user prompt and assistant response
+        user_msg = convo[0]["content"] if convo[0]["role"] == "user" else ""
+        assistant_msg = convo[1]["content"] if len(convo) > 1 and convo[1]["role"] == "assistant" else ""
+
+        # For alpaca: instruction is the task, input is empty, output is response
+        text = ALPACA_PROMPT.format(user_msg, "", assistant_msg) + EOS_TOKEN
+        texts.append(text)
+
+    return {"text": texts}
+
+
+def formatting_prompts_func_chat(examples, tokenizer):
+    """Format prompts for 1B/3B models using chat template."""
+    convos = examples["conversations"]
+    texts = [tokenizer.apply_chat_template(convo, tokenize=False, add_generation_prompt=False) for convo in convos]
+    return {"text": texts}
+
+
 def check_cuda():
     """Check CUDA availability and return device info."""
     if not torch.cuda.is_available():
@@ -233,10 +270,23 @@ def main():
         loftq_config=None,
     )
 
-    # Use native Llama chat template (don't use get_chat_template - incompatible with new TRL)
-    # Llama-3.2-Instruct already comes with proper chat template
-    print(f"Using native chat template")
-    print(f"eos_token: {tokenizer.eos_token} (id: {tokenizer.eos_token_id})")
+    # Configure chat template based on model size
+    if args.model == "8b":
+        # 8B uses Alpaca template (no get_chat_template needed)
+        print(f"Using Alpaca prompt template for 8B model")
+        print(f"eos_token: {tokenizer.eos_token} (id: {tokenizer.eos_token_id})")
+        use_alpaca = True
+    else:
+        # 1B/3B use Llama-3.1 chat template
+        from unsloth.chat_templates import get_chat_template
+
+        tokenizer = get_chat_template(
+            tokenizer,
+            chat_template="llama-3.1",
+        )
+        print(f"Using Llama-3.1 chat template for {args.model.upper()} model")
+        print(f"eos_token: {tokenizer.eos_token} (id: {tokenizer.eos_token_id})")
+        use_alpaca = False
 
     # Load and prepare dataset
     if args.use_processed:
@@ -260,13 +310,17 @@ def main():
         # Convert ShareGPT format to HuggingFace format
         dataset = standardize_sharegpt(dataset)
 
-    # Format prompts
-    def formatting_prompts_func(examples):
-        convos = examples["conversations"]
-        texts = [tokenizer.apply_chat_template(convo, tokenize=False, add_generation_prompt=False) for convo in convos]
-        return {"text": texts}
-
-    dataset = dataset.map(formatting_prompts_func, batched=True)
+    # Format prompts based on model type
+    if use_alpaca:
+        dataset = dataset.map(
+            lambda examples: formatting_prompts_func_alpaca(examples, tokenizer),
+            batched=True
+        )
+    else:
+        dataset = dataset.map(
+            lambda examples: formatting_prompts_func_chat(examples, tokenizer),
+            batched=True
+        )
 
     # Split dataset if eval_split is specified
     eval_dataset = None
@@ -326,7 +380,7 @@ def main():
         "train_dataset": dataset,
         "dataset_text_field": "text",
         "max_seq_length": args.max_seq_length,
-        "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer),
+        "data_collator": DataCollatorForSeq2Seq(tokenizer=tokenizer) if not use_alpaca else None,
         "dataset_num_proc": 2,
         "packing": False,
         "args": SFTConfig(**sft_config_kwargs),
@@ -338,17 +392,19 @@ def main():
 
     trainer = SFTTrainer(**trainer_kwargs)
 
-    # Train only on assistant responses (following official Unsloth approach)
-    # This masks user prompts and only trains on assistant responses
-    print("\nApplying train_on_responses_only...")
-    print(f"  instruction_part: '<|start_header_id|>user<|end_header_id|>\\n\\n'")
-    print(f"  response_part: '<|start_header_id|>assistant<|end_header_id|>\\n\\n'")
+    # Train only on assistant responses (for 1B/3B models using chat template)
+    if not use_alpaca:
+        print("\nApplying train_on_responses_only...")
+        print(f"  instruction_part: '<|start_header_id|>user<|end_header_id|>\\n\\n'")
+        print(f"  response_part: '<|start_header_id|>assistant<|end_header_id|>\\n\\n'")
 
-    trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
-    )
+        trainer = train_on_responses_only(
+            trainer,
+            instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
+            response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
+        )
+    else:
+        print("\nUsing full sequence training (Alpaca template)")
 
     # Show memory stats before training
     start_gpu_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
